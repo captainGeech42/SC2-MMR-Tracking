@@ -1,8 +1,10 @@
-from datetime import datetime
 import os
 import requests
+import time
 
 debug = True
+
+MAX_LEAGUE_ID = 4
 
 if __name__ == "__main__":
     # verify that the necessary files exist
@@ -17,7 +19,6 @@ if __name__ == "__main__":
         exit(1)
 
     # get the API access token
-
     accessTokenHandle = open(accessTokenPath, "r")
     accessToken = accessTokenHandle.readline().strip()
     accessTokenHandle.close()
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     # get ladder IDs
     # league IDs we care about are 0-4 (bronze-diamond)
     ladders = []
-    for leagueID in range(5):
+    for leagueID in range(MAX_LEAGUE_ID + 1):
         r = requests.get("https://us.api.battle.net/data/sc2/league/{}/201/0/{}".format(seasonID, leagueID), authParams)
         if debug:
             print("League {} Status: {}".format(leagueID, r.status_code))
@@ -68,35 +69,31 @@ if __name__ == "__main__":
     playerDict = []
     numFound = 0
     for ladder in ladders:
-        if numFound > 5:
-            break
         r = requests.get("https://us.api.battle.net/data/sc2/ladder/{}".format(ladder["id"]), authParams)
         json = r.json()
         for player in json["team"]:
-            if numFound > 5:
-                break
             bnet = player["member"][0]["character_link"]["battle_tag"]
-            if btags.__contains__(bnet):
+            if [btag.lower() for btag in btags].__contains__(bnet.lower()):
                 mmr = player["rating"]
-                # we only want the player's highest mmr
-                if len(playerDict) == 0:
-                    playerDict.append({"bnet": bnet, "mmr": mmr})
+                gamesPlayed = player["member"][0]["played_race_count"][0]["count"]
+                race = player["member"][0]["played_race_count"][0]["race"]["en_US"]
+
+                btagAlreadyFound = any(p["bnet"] == bnet for p in playerDict)
+
+                playerDict.append({"bnet": bnet, "league": ladder["league"], "mmr": mmr, "games": gamesPlayed,
+                                   "race": race})
+                if not btagAlreadyFound:
                     numFound += 1
-                else:
-                    for i in range(len(playerDict)):
-                        if playerDict[i]["bnet"] == bnet and playerDict[i]["mmr"] < mmr:
-                            playerDict[i]["mmr"] = mmr
-                        else:
-                            playerDict.append({"bnet": bnet, "mmr": mmr})
-                            numFound += 1
+
                 if debug:
-                    print("Found player: {} ({} left)".format(bnet, numBtags - numFound))
+                    print("Found player: [{}] {} ({} left)".format(race, bnet, numBtags - numFound))
 
     # write mmr data to file
-    timestamp = datetime.now()
-    mmrFile = open("mmr data {}.txt".format(timestamp), "a")
+    timestamp = time.strftime("%Y-%m-%d %H%M%S")
+    mmrFile = open("mmr data {}.txt".format(timestamp), "w")
     if debug:
         print("Writing player MMR data to file ({})".format(mmrFile.name))
     for player in playerDict:
-        mmrFile.write("{},{}\n".format(player["bnet"], player["mmr"]))
+        mmrFile.write("{},{},{},{},{}\n".format(player["bnet"], player["race"], player["mmr"], player["league"],
+                                                player["games"]))
     mmrFile.close()
