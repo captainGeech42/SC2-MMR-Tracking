@@ -27,6 +27,9 @@ if __name__ == "__main__":
 
     # get the current season ID
     r = requests.get("https://us.api.battle.net/data/sc2/season/current", authParams)
+    if r.status_code != 200:
+        print("{} returned error code {}, exiting...".format(r.url, r.status_code))
+        exit(1)
     seasonID = r.json()["id"]
     if debug:
         print("Current Season ID: {}".format(seasonID))
@@ -36,6 +39,9 @@ if __name__ == "__main__":
     ladders = []
     for leagueID in range(MAX_LEAGUE_ID + 1):
         r = requests.get("https://us.api.battle.net/data/sc2/league/{}/201/0/{}".format(seasonID, leagueID), authParams)
+        if r.status_code != 200:
+            print("{} returned error code {}, skipping...".format(r.url, r.status_code))
+            continue
         if debug:
             print("League {} Status: {}".format(leagueID, r.status_code))
         json = r.json()
@@ -70,6 +76,9 @@ if __name__ == "__main__":
     numFound = 0
     for ladder in ladders:
         r = requests.get("https://us.api.battle.net/data/sc2/ladder/{}".format(ladder["id"]), authParams)
+        if r.status_code != 200:
+            print("{} returned error code {}, skipping...".format(r.url, r.status_code))
+            continue
         json = r.json()
         for player in json["team"]:
             bnet = player["member"][0]["character_link"]["battle_tag"]
