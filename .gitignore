@@ -4,6 +4,9 @@
 # SC2 API Key
 access_token
 
+# MMR Files
+mmr data*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
