@@ -1,6 +1,9 @@
 # IntelliJ
 .idea/
 
+# SC2 API Key
+access_token
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
