@@ -1,0 +1,34 @@
+profile: http://us.battle.net/sc2/en/profile/4928856/1/asphyxa/
+
+id: 4928856
+
+ladder id: 263700
+
+ladder call:
+https://us.api.battle.net/data/sc2/ladder/:LADDER_ID
+	"team"->"rating" = MMR
+	"team"->"member"->"character_link"->"battle_tag" = bnet
+
+league call:
+https://us.api.battle.net/data/sc2/league/:SEASON_ID/:QUEUE_ID/:TEAM_TYPE/:LEAGUE_ID
+	args: https://us.battle.net/forums/en/sc2/topic/20749724960#post-1
+
+	:QUEUE_ID = 201
+	:TEAM_TYPE = 0
+	Leagues will be bronze-dia
+
+	"tier"->"id" = division (id=0, i.e. diamond 1; id=2, i.e. diamond 3)
+	"tier->"min_rating" = bottom MMR
+	"tier"->"max_rating" = top MMR
+	"tier"->"division"->"ladder_id" = ladder ID
+
+season call:
+https://us.api.battle.net/data/sc2/season/current
+	"id" = season ID
+
+workflow:
+	get current season ID
+	get list of ladders in each league
+	go through every ladder bronze3-diamond3 looking for players with btags registered with us
+	write date, btag, and mmr to file in csv
+	ingest that into sheets
