@@ -1,108 +1,130 @@
 import os
-import requests
 import time
 
-debug = True
+import requests
 
+from exceptions import RequestError
+from log import Log
+from starcraft import API, Player
+
+
+# program constants
+WRITE_DEBUG_LOG = True
 MAX_LEAGUE_ID = 4
+BATTLETAG_FILE_PATH = "battletags"
+ACCESS_TOKEN_PATH = "access_token"
 
-if __name__ == "__main__":
+
+def verify_files_exists()->bool:
+    if not os.path.exists(BATTLETAG_FILE_PATH):
+        Log.write_log_message("Battletag file does not exist, exiting...", True)
+        raise FileNotFoundError()
+
+    if not os.path.exists(ACCESS_TOKEN_PATH):
+        Log.write_log_message("Access token file does not exist, exiting...", True)
+        raise FileNotFoundError()
+
+    return True
+
+
+def get_auth_param()->dict:
+    access_token_handle = open(ACCESS_TOKEN_PATH, "r")
+    access_token = access_token_handle.readline().strip()
+    access_token_handle.close()
+
+    return {"access_token": access_token}
+
+
+def get_battletags()->list:
+    file = open(BATTLETAG_FILE_PATH, "r")
+    return [btag.strip() for btag in file.readlines()]
+
+
+def write_data_to_file(players: list):
+    file_timestamp = time.strftime("%Y-%m-%d %H%M%S")
+    mmr_file = open("mmr data {}.txt".format(file_timestamp), "w")
+    if WRITE_DEBUG_LOG:
+        print("Writing player MMR data to file ({})".format(mmr_file.name))
+    for player in players:
+        for team in player.ladders:
+            mmr_file.write("{},{},{},{},{}\n".format(player.battletag, team.race, team.mmr, team.league,
+                                                     team.games_played))
+    mmr_file.close()
+
+
+def print_players(players: list):
+    Log.write_log_message("Printing out all found JSL players")
+    for player in players:
+        Log.write_log_message("\t{}".format(player.battletag))
+        for team in player.ladders:
+            Log.write_log_message("\t\t{} {} {} [{} MMR]".format(team.league, team.divison, team.race, team.mmr))
+
+
+def main():
     # verify that the necessary files exist
-    btagPath = "battletags"
-    if not os.path.exists(btagPath):
-        print("Battletag file does not exist, exiting...")
-        exit(1)
-
-    accessTokenPath = "access_token"
-    if not os.path.exists(accessTokenPath):
-        print("Access token file does not exist, exiting...")
+    try:
+        verify_files_exists()
+    except FileNotFoundError:
         exit(1)
 
     # get the API access token
-    accessTokenHandle = open(accessTokenPath, "r")
-    accessToken = accessTokenHandle.readline().strip()
-    accessTokenHandle.close()
-
-    authParams = {"access_token": accessToken}
+    auth_params = get_auth_param()
 
     # get the current season ID
-    r = requests.get("https://us.api.battle.net/data/sc2/season/current", authParams)
-    if r.status_code != 200:
-        print("{} returned error code {}, exiting...".format(r.url, r.status_code))
+    season_id = -1
+    try:
+        season_id = API.get_current_season_id(auth_params)
+    except RequestError as e:
+        print(e)
         exit(1)
-    seasonID = r.json()["id"]
-    if debug:
-        print("Current Season ID: {}".format(seasonID))
+    Log.write_log_message("Current Season ID: {}".format(season_id))
 
-    # get ladder IDs
-    # league IDs we care about are 0-4 (bronze-diamond)
-    ladders = []
-    for leagueID in range(MAX_LEAGUE_ID + 1):
-        r = requests.get("https://us.api.battle.net/data/sc2/league/{}/201/0/{}".format(seasonID, leagueID), authParams)
-        if r.status_code != 200:
-            print("{} returned error code {}, skipping...".format(r.url, r.status_code))
-            continue
-        if debug:
-            print("League {} Status: {}".format(leagueID, r.status_code))
-        json = r.json()
-        for tier in json["tier"]:
-            division = tier["id"]
-            minMMR = tier["min_rating"]
-            maxMMR = tier["max_rating"]
-            if debug:
-                print("Division: {}".format(division))
-                print("Minimum MMR: {}".format(minMMR))
-                print("Maximum MMR: {}".format(maxMMR))
-            for ladder in tier["division"]:
-                ladderID = ladder["ladder_id"]
-                if debug:
-                    print("Ladder ID: {}".format(ladderID))
-                data = {"league": leagueID, "division": division, "min_mmr": minMMR, "ceiling_mmr": maxMMR,
-                        "id": ladderID}
-                ladders.append(data)
-                if debug:
-                    print(data)
-    print("Total Ladders Found: {}".format(len(ladders)))
+    # get ladders
+    ladders = API.get_all_ladders(MAX_LEAGUE_ID, season_id, auth_params)
+    Log.write_log_message("Total Ladders Found: {}".format(len(ladders)))
 
     # read in btags to a list
-    btagFile = open(btagPath, "r")
-    btags = [btag.strip() for btag in btagFile.readlines()]
-    numBtags = len(btags)
-    if debug:
-        print("Battletags Read In: {} [Sample: {}]".format(numBtags, btags[0]))
+    battletags = get_battletags()
+    num_battletags = len(battletags)
+    Log.write_log_message("Battletags Read In: {}".format(num_battletags))
 
     # go through every ladder looking for one of our players
-    playerDict = []
-    numFound = 0
+    jsl_players = []
+    num_found = 0
     for ladder in ladders:
-        r = requests.get("https://us.api.battle.net/data/sc2/ladder/{}".format(ladder["id"]), authParams)
-        if r.status_code != 200:
-            print("{} returned error code {}, skipping...".format(r.url, r.status_code))
-            continue
-        json = r.json()
-        for player in json["team"]:
-            bnet = player["member"][0]["character_link"]["battle_tag"]
-            if [btag.lower() for btag in btags].__contains__(bnet.lower()):
-                mmr = player["rating"]
-                gamesPlayed = player["member"][0]["played_race_count"][0]["count"]
-                race = player["member"][0]["played_race_count"][0]["race"]["en_US"]
+        # loop through every ladder between bronze and diamond
 
-                btagAlreadyFound = any(p["bnet"] == bnet for p in playerDict)
+        players = API.get_players_in_ladder(ladder, auth_params)
 
-                playerDict.append({"bnet": bnet, "league": ladder["league"], "mmr": mmr, "games": gamesPlayed,
-                                   "race": race})
-                if not btagAlreadyFound:
-                    numFound += 1
+        for player in players:
+            # loop through every player in the ladder
 
-                if debug:
-                    print("Found player: [{}] {} ({} left)".format(race, bnet, numBtags - numFound))
+            if [battletag.lower() for battletag in battletags].__contains__(player.battletag.lower()):
+                # a JSL contestant was found
+
+                # look to see if this player already is in the jsl_players list
+                found_player = False
+                for contestant in jsl_players:
+                    if contestant.battletag == player.battletag:
+                        # the JSL contestant was found in the list, add the new teams
+
+                        found_player = True
+                        for team in player.ladders:
+                            # add every team in this ladder for this player
+                            contestant.add_ladder(team)
+                if not found_player:
+                    # the JSL contestant was not found
+                    jsl_players.append(player)
+                    num_found += 1
+
+                for team in player.ladders:
+                    Log.write_log_message("Found player: {} [{} {} {}] ({} left)".format(player.battletag, team.league,
+                                                                                         team.divison, team.race,
+                                                                                         num_battletags - num_found))
 
     # write mmr data to file
-    timestamp = time.strftime("%Y-%m-%d %H%M%S")
-    mmrFile = open("mmr data {}.txt".format(timestamp), "w")
-    if debug:
-        print("Writing player MMR data to file ({})".format(mmrFile.name))
-    for player in playerDict:
-        mmrFile.write("{},{},{},{},{}\n".format(player["bnet"], player["race"], player["mmr"], player["league"],
-                                                player["games"]))
-    mmrFile.close()
+    write_data_to_file(jsl_players)
+
+
+if __name__ == "__main__":
+    main()
