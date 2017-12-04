@@ -17,18 +17,11 @@ This Python program uses the SC2 API to pull MMR data from a list of players
 
 ### Data format in `mmr data [timestamp].txt`
 
-Data is CSV. Example: `asphyxa#1933,Zerg,3784,4,24`
+Data is CSV. Example: `asphyxa#1933,Zerg,3784,Diamond,24`
  * `asphyxa#1933` = Battletag
  * `Zerg` = Race for this entry
  * `3784` = MMR as this race
- * `4` = League ID
-   * 0 = Bronze
-   * 1 = Silver
-   * 2 = Gold
-   * 3 = Platinum
-   * 4 = Diamond
-   * 5 = Master
-   * 6 = Grandmaster
+ * `Diamond` = League
  * `24` = Games played as this race
 
 Notes:
