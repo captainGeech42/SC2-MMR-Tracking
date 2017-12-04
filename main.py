@@ -52,6 +52,14 @@ def write_data_to_file(players: list):
     mmr_file.close()
 
 
+def print_players(players: list):
+    Log.write_log_message("Printing out all found JSL players")
+    for player in players:
+        Log.write_log_message("\t{}".format(player.battletag))
+        for team in player.ladders:
+            Log.write_log_message("\t\t{} {} {} [{} MMR]".format(team.league, team.divison, team.race, team.mmr))
+
+
 def main():
     # verify that the necessary files exist
     try:
@@ -91,7 +99,7 @@ def main():
         for player in players:
             # loop through every player in the ladder
 
-            if [battletag.lower() for battletag in battletags].__contains__(player.battletag):
+            if [battletag.lower() for battletag in battletags].__contains__(player.battletag.lower()):
                 # a JSL contestant was found
 
                 # look to see if this player already is in the jsl_players list
