@@ -47,7 +47,8 @@ def write_data_to_file(players: list):
         print("Writing player MMR data to file ({})".format(mmr_file.name))
     for player in players:
         for team in player.ladders:
-            mmr_file.write("{},{},{},{},{}\n".format(player.battletag, team.race, team.mmr, team.league, team.mmr))
+            mmr_file.write("{},{},{},{},{}\n".format(player.battletag, team.race, team.mmr, team.league,
+                                                     team.games_played))
     mmr_file.close()
 
 
