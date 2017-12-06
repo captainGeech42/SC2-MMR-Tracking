@@ -45,19 +45,22 @@ class API:
             raise RequestError(r, "{} returned error code {}, skipping...".format(r.url, r.status_code))
         json = r.json()
         for player in json["team"]:
-            bnet = player["member"][0]["character_link"]["battle_tag"]
-            mmr = player["rating"]
-            games_played = player["member"][0]["played_race_count"][0]["count"]
-            race = player["member"][0]["played_race_count"][0]["race"]
+            try:
+                bnet = player["member"][0]["character_link"]["battle_tag"]
+                mmr = player["rating"]
+                games_played = player["member"][0]["played_race_count"][0]["count"]
+                race = player["member"][0]["played_race_count"][0]["race"]
 
-            found_player = False
-            for p_obj in players:
-                if p_obj.battletag == bnet:
-                    p_obj.add_race(race, ladder.league_id, ladder.division, games_played, mmr)
-                    found_player = True
-            if not found_player:
-                obj = Player(bnet)
-                # ladder.division + 1 is due to API having d1 be 0, d2 be 1, etc.
-                obj.add_race(race, ladder.league_id, ladder.division + 1, games_played, mmr)
-                players.append(obj)
+                found_player = False
+                for p_obj in players:
+                    if p_obj.battletag == bnet:
+                        p_obj.add_race(region_code, race, ladder.league_id, ladder.division, games_played, mmr)
+                        found_player = True
+                if not found_player:
+                    obj = Player(bnet)
+                    # ladder.division + 1 is due to API having d1 be 0, d2 be 1, etc.
+                    obj.add_race(region_code, race, ladder.league_id, ladder.division + 1, games_played, mmr)
+                    players.append(obj)
+            except KeyError:
+                continue
         return players

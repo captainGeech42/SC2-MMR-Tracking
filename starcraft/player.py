@@ -6,10 +6,10 @@ class Player:
         self.battletag = battletag
         self.ladders = []
 
-    def add_race(self, race: str, league_id: int, division: int, games_played: int, mmr: int):
+    def add_race(self, region: str, race: str, league_id: int, division: int, games_played: int, mmr: int):
         leagues = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"]
 
-        team = Team(race, leagues[league_id], division, games_played, mmr)
+        team = Team(region, race, leagues[league_id], division, games_played, mmr)
         self.ladders.append(team)
 
     def add_ladder(self, ladder: Team):
@@ -20,6 +20,7 @@ class Player:
                 # same race. if so, we want to keep the highest mmr one
                 race_already_exists = True
                 if ladder.mmr > team.mmr:
+                    team.region = ladder.region
                     team.mmr = ladder.mmr
                     team.league = ladder.league
                     team.divison = ladder.divison
