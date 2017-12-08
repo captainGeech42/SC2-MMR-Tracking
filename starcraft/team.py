@@ -1,6 +1,5 @@
 class Team:
-    def __init__(self, region: str, race: str, league: str, division: int, games_played: int, mmr: int):
-        self.region = region
+    def __init__(self, race: str, league: str, division: int, games_played: int, mmr: int):
         self.race = race
         self.league = league
         self.divison = division

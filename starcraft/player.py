@@ -2,14 +2,15 @@ from .team import Team
 
 
 class Player:
-    def __init__(self, battletag: str):
+    def __init__(self, battletag: str, region: str):
         self.battletag = battletag
+        self.region = region
         self.ladders = []
 
-    def add_race(self, region: str, race: str, league_id: int, division: int, games_played: int, mmr: int):
+    def add_race(self, race: str, league_id: int, division: int, games_played: int, mmr: int):
         leagues = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster"]
 
-        team = Team(region, race, leagues[league_id], division, games_played, mmr)
+        team = Team(race, leagues[league_id], division, games_played, mmr)
         self.ladders.append(team)
 
     def add_ladder(self, ladder: Team):

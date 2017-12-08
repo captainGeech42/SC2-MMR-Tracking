@@ -54,12 +54,12 @@ class API:
                 found_player = False
                 for p_obj in players:
                     if p_obj.battletag == bnet:
-                        p_obj.add_race(region_code, race, ladder.league_id, ladder.division, games_played, mmr)
+                        p_obj.add_race(race, ladder.league_id, ladder.division, games_played, mmr)
                         found_player = True
                 if not found_player:
-                    obj = Player(bnet)
+                    obj = Player(bnet, region_code)
                     # ladder.division + 1 is due to API having d1 be 0, d2 be 1, etc.
-                    obj.add_race(region_code, race, ladder.league_id, ladder.division + 1, games_played, mmr)
+                    obj.add_race(race, ladder.league_id, ladder.division + 1, games_played, mmr)
                     players.append(obj)
             except KeyError:
                 continue
