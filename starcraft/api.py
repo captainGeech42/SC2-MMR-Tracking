@@ -54,7 +54,7 @@ class API:
                 found_player = False
                 for p_obj in players:
                     if p_obj.battletag == bnet:
-                        p_obj.add_race(race, ladder.league_id, ladder.division, games_played, mmr)
+                        p_obj.add_race(race, ladder.league_id, ladder.division + 1, games_played, mmr)
                         found_player = True
                 if not found_player:
                     obj = Player(bnet, region_code)
