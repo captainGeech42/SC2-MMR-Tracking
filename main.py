@@ -3,6 +3,7 @@ import time
 
 from exceptions import RequestError
 from log import Log
+from database import MySQL
 from starcraft import API
 
 
@@ -40,16 +41,35 @@ def get_battletags(region: str)->list:
     return [btag.strip() for btag in file.readlines()]
 
 
-def write_data_to_file(players: list):
+def write_all_mmr_data(players: list):
     file_timestamp = time.strftime("%Y-%m-%d %H%M%S")
     mmr_file = open("mmr data {}.txt".format(file_timestamp), "w")
     if WRITE_DEBUG_LOG:
-        print("Writing player MMR data to file ({})".format(mmr_file.name))
+        print("Writing all player MMR data to file ({})".format(mmr_file.name))
     for player in players:
         for team in player.ladders:
             mmr_file.write("{},{},{},{},{},{}\n".format(player.battletag, team.region, team.race, team.mmr, team.league,
                                                         team.games_played))
     mmr_file.close()
+
+
+def write_highest_mmr_data(players: list):
+    file_timestamp = time.strftime("%Y-%m-%d %H%M%S")
+    mmr_file = open("highest mmr data {}.txt".format(file_timestamp), "w")
+    if WRITE_DEBUG_LOG:
+        print("Writing highest player MMR data to file ({})".format(mmr_file.name))
+    for player in players:
+        mmr = 0
+        write = True
+        for team in player.ladders:
+            if team.mmr > mmr:
+                if team.games_played < 25:
+                    write = False
+                mmr = team.mmr
+        if write:
+            mmr_file.write("{},{}".format(player.battletag, mmr))
+    mmr_file.close()
+
 
 
 def print_players(players: list):
@@ -59,6 +79,15 @@ def print_players(players: list):
         for team in player.ladders:
             Log.write_log_message("\t\t{} {} {} [{} MMR]".format(team.league, team.divison, team.race, team.mmr))
 
+
+def add_players_to_database(db: MySQL, players: list):
+    for player in players:
+        db.add_player(player)
+
+
+def add_ladders_to_database(db: MySQL, ladders: list):
+    for ladder in ladders:
+        db.add_ladder(ladder)
 
 def main():
     # verify that the necessary files exist
@@ -80,6 +109,9 @@ def main():
     Log.write_log_message("Current Season ID: {}".format(season_id))
 
     jsl_players = []
+    jsl_players_found = []
+
+    db_handle = MySQL()
 
     for region in REGION_CODES:
         Log.write_log_message("Starting {} Region".format(region.upper()))
@@ -87,6 +119,9 @@ def main():
         # get ladders
         ladders = API.get_all_ladders(region, MAX_LEAGUE_ID, season_id, request_parameters)
         Log.write_log_message("Total Ladders Found: {}".format(len(ladders)))
+
+        # add all of the ladders to the database
+        add_ladders_to_database(db_handle, ladders)
 
         # read in btags to a list
         battletags = get_battletags(region)
@@ -105,6 +140,8 @@ def main():
 
                 if [battletag.lower() for battletag in battletags].__contains__(player.battletag.lower()):
                     # a JSL contestant was found
+                    if not jsl_players_found.__contains__(player.battletag):
+                        jsl_players_found.append(player.battletag)
 
                     # look to see if this player already is in the jsl_players list
                     found_player = False
@@ -128,7 +165,15 @@ def main():
                                                                            num_battletags - num_found))
 
     # write mmr data to file
-    write_data_to_file(jsl_players)
+    write_all_mmr_data(jsl_players)
+
+    # add players to database
+    add_players_to_database(jsl_players)
+
+    # print out players who weren't found
+    for player in jsl_players:
+        if not jsl_players_found.__contains__(player.battletag):
+            Log.write_log_message("{} was not found".format(player.battletag))
 
 
 if __name__ == "__main__":
