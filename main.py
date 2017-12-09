@@ -1,3 +1,4 @@
+import MySQLdb
 import os
 import time
 
@@ -48,36 +49,9 @@ def write_all_mmr_data(players: list):
         print("Writing all player MMR data to file ({})".format(mmr_file.name))
     for player in players:
         for team in player.ladders:
-            mmr_file.write("{},{},{},{},{},{}\n".format(player.battletag, team.region, team.race, team.mmr, team.league,
+            mmr_file.write("{},{},{},{},{},{}\n".format(player.battletag, player.region, team.race, team.mmr, team.league,
                                                         team.games_played))
     mmr_file.close()
-
-
-def write_highest_mmr_data(players: list):
-    file_timestamp = time.strftime("%Y-%m-%d %H%M%S")
-    mmr_file = open("highest mmr data {}.txt".format(file_timestamp), "w")
-    if WRITE_DEBUG_LOG:
-        print("Writing highest player MMR data to file ({})".format(mmr_file.name))
-    for player in players:
-        mmr = 0
-        write = True
-        for team in player.ladders:
-            if team.mmr > mmr:
-                if team.games_played < 25:
-                    write = False
-                mmr = team.mmr
-        if write:
-            mmr_file.write("{},{}".format(player.battletag, mmr))
-    mmr_file.close()
-
-
-
-def print_players(players: list):
-    Log.write_log_message("Printing out all found JSL players")
-    for player in players:
-        Log.write_log_message("\t{}".format(player.battletag))
-        for team in player.ladders:
-            Log.write_log_message("\t\t{} {} {} [{} MMR]".format(team.league, team.divison, team.race, team.mmr))
 
 
 def add_players_to_database(db: MySQL, players: list):
@@ -88,6 +62,7 @@ def add_players_to_database(db: MySQL, players: list):
 def add_ladders_to_database(db: MySQL, ladders: list):
     for ladder in ladders:
         db.add_ladder(ladder)
+
 
 def main():
     # verify that the necessary files exist
@@ -121,7 +96,10 @@ def main():
         Log.write_log_message("Total Ladders Found: {}".format(len(ladders)))
 
         # add all of the ladders to the database
-        add_ladders_to_database(db_handle, ladders)
+        try:
+            add_ladders_to_database(db_handle, ladders)
+        except MySQLdb.IntegrityError:
+            Log.write_log_message("Ladders are already in database for {}".format(region.upper()))
 
         # read in btags to a list
         battletags = get_battletags(region)
@@ -140,6 +118,11 @@ def main():
 
                 if [battletag.lower() for battletag in battletags].__contains__(player.battletag.lower()):
                     # a JSL contestant was found
+                    db_handle.add_player(player)
+
+                    for team in player.ladders:
+                        db_handle.add_race(player, team)
+
                     if not jsl_players_found.__contains__(player.battletag):
                         jsl_players_found.append(player.battletag)
 
@@ -168,7 +151,10 @@ def main():
     write_all_mmr_data(jsl_players)
 
     # add players to database
-    add_players_to_database(jsl_players)
+    # add_players_to_database(db_handle, jsl_players)
+
+    # close database
+    db_handle.close()
 
     # print out players who weren't found
     for player in jsl_players:

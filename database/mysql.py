@@ -1,11 +1,11 @@
 import MySQLdb
-from starcraft import Ladder, Player
+from starcraft import Ladder, Player, Team
 
 
 class MySQL:
-    host = "localhost"
+    host = "192.168.102.128"
     port = 3306
-    username = "root"
+    username = "starcraft"
     password = "1234asdf"
     database = "starcraft"
 
@@ -15,20 +15,14 @@ class MySQL:
         self.cursor = self.db.cursor()
 
     def add_player(self, player: Player):
-        ladders = {"protoss": ["", 0], "random": ["", 0], "terran": ["", 0], "zerg": ["", 0]}
-        for team in player.ladders:
-            ladders[team.race.lower()] = [team.league, team.mmr]
+        query = "SELECT battletag FROM players WHERE battletag = \"{}\"".format(player.battletag)
+        self.cursor.execute(query)
+        num_rows = self.cursor.rowcount
+        if num_rows > 0:
+            return 0
 
-        query = (
-            "INSERT INTO players (battletag, server, p_league, p_mmr, r_league, r_mmr, t_league, t_mmr, z_league,"
-            "z_mmr) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        )
-        num_rows = self.cursor.execute(query, player.battletag, player.region,
-                                       ladders["protoss"][0], ladders["protoss"][1],
-                                       ladders["random"][0], ladders["random"][1],
-                                       ladders["terran"][0], ladders["terran"][1],
-                                       ladders["zerg"][0], ladders["zerg"][1])
-
+        query = "INSERT INTO players (battletag, server) VALUES (%s, %s)"
+        num_rows = self.cursor.execute(query, (player.battletag, player.region))
         self.db.commit()
 
         return num_rows
@@ -41,9 +35,18 @@ class MySQL:
             "VALUES (%s, %s, %s, %s, %s, %s)"
         )
 
-        num_rows = self.cursor.execute(query, ladder.id, ladder.region, leagues[ladder.league_id], ladder.division,
-                                       ladder.min_mmr, ladder.max_mmr)
+        num_rows = self.cursor.execute(query, (ladder.id, ladder.region, leagues[ladder.league_id], ladder.division,
+                                       ladder.min_mmr, ladder.max_mmr))
 
+        self.db.commit()
+
+        return num_rows
+
+    def add_race(self, player: Player, team: Team):
+        prefix = team.race[:1].lower()
+
+        query = "UPDATE players SET {0}_mmr = %s, {0}_league = %s, {0}_games = %s WHERE battletag = %s".format(prefix)
+        num_rows = self.cursor.execute(query, (team.mmr, team.league, team.games_played, player.battletag))
         self.db.commit()
 
         return num_rows

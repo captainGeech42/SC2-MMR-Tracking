@@ -21,7 +21,6 @@ class Player:
                 # same race. if so, we want to keep the highest mmr one
                 race_already_exists = True
                 if ladder.mmr > team.mmr:
-                    team.region = ladder.region
                     team.mmr = ladder.mmr
                     team.league = ladder.league
                     team.divison = ladder.divison

@@ -5,12 +5,16 @@ CREATE TABLE IF NOT EXISTS `starcraft`.`players` (
   `server`      enum('us','eu')   NOT NULL,
   `p_league`    varchar(13)       DEFAULT NULL,
   `p_mmr`       int(10)           unsigned DEFAULT NULL,
+  `p_games`     int(10)           unsigned DEFAULT NULL,
   `r_league`    varchar(13)       DEFAULT NULL,
   `r_mmr`       int(10)           unsigned DEFAULT NULL,
+  `r_games`     int(10)           unsigned DEFAULT NULL,
   `t_league`    varchar(13)       DEFAULT NULL,
   `t_mmr`       int(10)           unsigned DEFAULT NULL,
+  `t_games`     int(10)           unsigned DEFAULT NULL,
   `z_league`    varchar(13)       DEFAULT NULL,
   `z_mmr`       int(10)           unsigned DEFAULT NULL,
+  `z_games`     int(10)           unsigned DEFAULT NULL,
   PRIMARY KEY (`battletag`)
 ) ENGINE = InnoDB DEFAULT CHARSET = latin1;
 
