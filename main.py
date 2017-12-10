@@ -64,6 +64,20 @@ def add_ladders_to_database(db: MySQL, ladders: list):
         db.add_ladder(ladder)
 
 
+def write_valid_players(players: list):
+    file_timestamp = time.strftime("%Y-%m-%d %H%M%S")
+    file = open("valid players {}.txt".format(file_timestamp), "w")
+    for player in players:
+        battletag = player["battletag"]
+        mmr = player["mmr"]
+        valid_races = player["valid_races"]
+        valid_races_str = ""
+        for valid_race in valid_races:
+            valid_races_str += valid_race[:1]
+        file.write("{} ({}),{}\n".format(battletag, valid_races_str, mmr))
+    file.close()
+
+
 def main():
     # verify that the necessary files exist
     try:
@@ -82,9 +96,6 @@ def main():
         print(e)
         exit(1)
     Log.write_log_message("Current Season ID: {}".format(season_id))
-
-    jsl_players = []
-    jsl_players_found = []
 
     db_handle = MySQL()
 
@@ -111,6 +122,7 @@ def main():
         for ladder in ladders:
             # loop through every ladder between bronze and diamond
 
+            # get all of the players in the ladder
             players = API.get_players_in_ladder(region, ladder, request_parameters)
 
             for player in players:
@@ -123,43 +135,18 @@ def main():
                     for team in player.ladders:
                         db_handle.add_race(player, team)
 
-                    if not jsl_players_found.__contains__(player.battletag):
-                        jsl_players_found.append(player.battletag)
-
-                    # look to see if this player already is in the jsl_players list
-                    found_player = False
-                    for contestant in jsl_players:
-                        if contestant.battletag == player.battletag:
-                            # the JSL contestant was found in the list, add the new teams
-
-                            found_player = True
-                            for team in player.ladders:
-                                # add every team in this ladder for this player
-                                contestant.add_ladder(team)
-                    if not found_player:
-                        # the JSL contestant was not found
-                        jsl_players.append(player)
-                        num_found += 1
-
                     for team in player.ladders:
                         Log.write_log_message(
-                            "Found player: {} [{} {} {}] ({} left)".format(player.battletag, team.league,
-                                                                           team.divison, team.race,
-                                                                           num_battletags - num_found))
+                            "Found player: {} [{} {} {}]".format(player.battletag, team.league,
+                                                                 team.divison, team.race))
 
-    # write mmr data to file
-    write_all_mmr_data(jsl_players)
-
-    # add players to database
-    # add_players_to_database(db_handle, jsl_players)
+    # get all players in database
+    Log.write_log_message("Writing valid player data to disk")
+    valid_players = db_handle.get_all_valid_players()
+    write_valid_players(valid_players)
 
     # close database
     db_handle.close()
-
-    # print out players who weren't found
-    for player in jsl_players:
-        if not jsl_players_found.__contains__(player.battletag):
-            Log.write_log_message("{} was not found".format(player.battletag))
 
 
 if __name__ == "__main__":
