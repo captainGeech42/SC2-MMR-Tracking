@@ -15,7 +15,8 @@ class MySQL:
         self.cursor = self.db.cursor()
 
     def add_player(self, player: Player):
-        query = "SELECT battletag FROM players WHERE battletag = \"{}\"".format(player.battletag)
+        query = "SELECT battletag FROM players WHERE battletag = \"{}\" AND server = \"{}\"".format(player.battletag,
+                                                                                                    player.region)
         self.cursor.execute(query)
         num_rows = self.cursor.rowcount
         if num_rows > 0:
@@ -43,25 +44,25 @@ class MySQL:
         return num_rows
 
     def add_race(self, player: Player, team: Team):
-        prefix = team.race[:1].lower()
+        prefix = team.race[:1].lower()  # "Protoss" => "p"
 
-        query = "UPDATE players SET {0}_mmr = %s, {0}_league = %s, {0}_games = %s WHERE battletag = %s".format(prefix)
-        num_rows = self.cursor.execute(query, (team.mmr, team.league, team.games_played, player.battletag))
+        query = "UPDATE players SET {0}_mmr = %s, {0}_league = %s, {0}_games = %s WHERE battletag = %s AND server = %s"\
+            .format(prefix)
+        num_rows = self.cursor.execute(query, (team.mmr, team.league, team.games_played, player.battletag,
+                                               player.region))
         self.db.commit()
 
         return num_rows
 
     def get_all_valid_players(self) -> list:
-        required_games = 25
+        query = "SELECT * FROM `players` WHERE `p_games` >= 25 OR `r_games` >= 25 OR `t_games` >= 25 or `z_games` >= 25"
 
         '''query = (
             "SELECT * FROM `players` where (p_league != 'Diamond' or p_league IS NULL) and "
             "(r_league != 'Diamond' or r_league IS NULL) and (t_league != 'Diamond' or t_league IS NULL) and "
-            "(z_league != 'Diamond' or z_league IS NULL) and p_games >=  {0} or r_games >= {0} or "
-            "t_games >= {0} or z_games >= {0}".format(required_games)
+            "(z_league != 'Diamond' or z_league IS NULL) and p_games >=  25 or r_games >= 25 or "
+            "t_games >= 25 or z_games >= 25"
         )'''
-
-        query = "SELECT * FROM `players` WHERE `p_games` >= 25 OR `r_games` >= 25 OR `t_games` >= 25 or `z_games` >= 25"
 
         num_rows = self.cursor.execute(query)
 

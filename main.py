@@ -11,7 +11,7 @@ from starcraft import API
 
 # program constants
 WRITE_DEBUG_LOG = True
-MAX_LEAGUE_ID = 3
+MAX_LEAGUE_ID = 4
 BATTLETAG_FILE_PATH_FORMAT = "battletags_{}"
 ACCESS_TOKEN_PATH = "access_token"
 REGION_CODES = ["us", "eu"]
