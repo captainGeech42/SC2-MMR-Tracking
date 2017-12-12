@@ -54,12 +54,14 @@ class MySQL:
     def get_all_valid_players(self) -> list:
         required_games = 25
 
-        query = (
+        '''query = (
             "SELECT * FROM `players` where (p_league != 'Diamond' or p_league IS NULL) and "
             "(r_league != 'Diamond' or r_league IS NULL) and (t_league != 'Diamond' or t_league IS NULL) and "
             "(z_league != 'Diamond' or z_league IS NULL) and p_games >=  {0} or r_games >= {0} or "
             "t_games >= {0} or z_games >= {0}".format(required_games)
-        )
+        )'''
+
+        query = "SELECT * FROM `players` WHERE `p_games` >= 25 OR `r_games` >= 25 OR `t_games` >= 25 or `z_games` >= 25"
 
         num_rows = self.cursor.execute(query)
 

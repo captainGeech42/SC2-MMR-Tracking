@@ -1,6 +1,7 @@
 import MySQLdb
 import os
 import time
+import sys
 
 from exceptions import RequestError
 from log import Log
@@ -10,7 +11,7 @@ from starcraft import API
 
 # program constants
 WRITE_DEBUG_LOG = True
-MAX_LEAGUE_ID = 4
+MAX_LEAGUE_ID = 3
 BATTLETAG_FILE_PATH_FORMAT = "battletags_{}"
 ACCESS_TOKEN_PATH = "access_token"
 REGION_CODES = ["us", "eu"]
@@ -80,10 +81,18 @@ def write_valid_players(players: list):
 
 def main():
     # verify that the necessary files exist
-    try:
-        verify_files_exists(REGION_CODES)
-    except FileNotFoundError:
-        exit(1)
+    battletag_from_cli = []
+    if len(sys.argv) == 1:
+        try:
+            verify_files_exists(REGION_CODES)
+        except FileNotFoundError:
+            exit(1)
+    elif len(sys.argv) == 2:
+        if not os.path.exists(sys.argv[1]):
+            Log.write_log_message("Specified file does not exist, exiting...", True)
+        btags = open(sys.argv[1], "r")
+        for btag in btags:
+            battletag_from_cli.append(btag.strip())
 
     # get the API request parameters
     request_parameters = get_request_parameters()
@@ -113,12 +122,14 @@ def main():
             Log.write_log_message("Ladders are already in database for {}".format(region.upper()))
 
         # read in btags to a list
-        battletags = get_battletags(region)
+        if len(battletag_from_cli) == 0:
+            battletags = get_battletags(region)
+        else:
+            battletags = battletag_from_cli
         num_battletags = len(battletags)
         Log.write_log_message("Battletags Read In: {}".format(num_battletags))
 
         # go through every ladder looking for one of our players
-        num_found = 0
         for ladder in ladders:
             # loop through every ladder between bronze and diamond
 
@@ -151,3 +162,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # db = MySQL()
+    # write_valid_players(db.get_all_valid_players())
