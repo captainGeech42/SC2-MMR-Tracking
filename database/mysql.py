@@ -55,33 +55,29 @@ class MySQL:
         return num_rows
 
     def get_all_valid_players(self) -> list:
-        query = "SELECT * FROM `players` WHERE `p_games` >= 25 OR `r_games` >= 25 OR `t_games` >= 25 or `z_games` >= 25"
-
-        '''query = (
-            "SELECT * FROM `players` where (p_league != 'Diamond' or p_league IS NULL) and "
-            "(r_league != 'Diamond' or r_league IS NULL) and (t_league != 'Diamond' or t_league IS NULL) and "
-            "(z_league != 'Diamond' or z_league IS NULL) and p_games >=  25 or r_games >= 25 or "
-            "t_games >= 25 or z_games >= 25"
-        )'''
+        query = (
+            "SELECT * FROM `players` where (p_league != 'Diamond' and r_league != 'Diamond' and t_league != 'Diamond' "
+            "and z_league != 'Diamond') and (p_games >=  25 or r_games >= 25 or t_games >= 25 or z_games >= 25)"
+        )
 
         num_rows = self.cursor.execute(query)
 
         players = []
         for x in range(num_rows):
             row = self.cursor.fetchone()
-            btag = row[0]
+            btag = row[1]
 
             valid_races = []
-            if type(row[4]) == int and row[4] >= 25:
+            if type(row[5]) == int and row[5] >= 25:
                 valid_races.append("Protoss")
-            if type(row[7]) == int and row[7] >= 25:
+            if type(row[8]) == int and row[8] >= 25:
                 valid_races.append("Random")
-            if type(row[10]) == int and row[10] >= 25:
+            if type(row[11]) == int and row[11] >= 25:
                 valid_races.append("Terran")
-            if type(row[13]) == int and row[13] >= 25:
+            if type(row[14]) == int and row[14] >= 25:
                 valid_races.append("Zerg")
 
-            mmrs = [row[3], row[6], row[9], row[12]]
+            mmrs = [row[4], row[7], row[10], row[13]]
             mmr = 0
             for i in mmrs:
                 if i is None:

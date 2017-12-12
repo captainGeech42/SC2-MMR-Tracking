@@ -1,0 +1,5 @@
+all valid players:
+SELECT * FROM `players` where (p_league != 'Diamond' and r_league != 'Diamond' and t_league != 'Diamond' and z_league != 'Diamond') and (p_games >=  25 or r_games >= 25 or t_games >= 25 or z_games >= 25)
+
+all invalid players:
+SELECT * FROM `players` where (p_league = 'Diamond' or r_league = 'Diamond' or t_league = 'Diamond' or z_league = 'Diamond') or (p_games <  25 and r_games < 25 and t_games < 25 and z_games < 25)
